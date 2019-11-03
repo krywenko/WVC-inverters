@@ -1,0 +1,205 @@
+#!/bin/bash
+
+host=127.0.0.1  #Mqtt  host 
+
+volts=0
+av=0
+aa=0
+watts=0
+dv=0
+da=0
+n=0
+
+
+filename=$2
+Modem=$3
+M1="$(echo $Modem | cut  -c1-2 )"
+M2="$(echo $Modem | cut  -c3-4 )"
+M3="$(echo $Modem | cut  -c5-6 )"
+M4="$(echo $Modem | cut  -c7-8 )"
+
+ModemTest="$(echo \\xf8\\x$M1\\x$M2\\x$M3\\x$M4\\xff\\xff\\x6b)" 
+
+if [ -z  "$1" ]; then
+echo "missing arguments in this order  ComPort  inverter.list  modemID"
+exit -1
+ fi
+if [ -z  "$2" ]; then
+echo "missing arguments in this order   ComPort  inverter.list  modemID"
+exit -1
+fi
+if [ -z  "$3" ]; then
+echo "missing arguments in this order  ComPort  inverter.list  modemID"
+exit -1
+fi
+echo " Using modem  "$M1 $M2 $M3 $M4 " at port " $1 "  Using  inverter list " $2
+
+I="$(ps -efww | grep '[W]VC /dev' | wc -l)"
+echo  "virtural port " /dev/ttyWVCDUMMY$I
+
+for (( ; ; ))
+do
+
+while read line; do
+# reading each line
+>  /dev/shm/ser-data$I
+sleep .6
+Itype="$(echo $line | cut -d / -f 1 )"
+echo " "
+echo "Inverter Type "$Itype
+D_id="$(echo $line | cut -d / -f 2)"
+#echo "Device id" $D_id
+
+
+H1="$(echo $D_id | cut  -c1-2 )"
+
+H2="$(echo $D_id | cut  -c3-4 )"
+
+Payload="$(echo \\xf2\\x$M1\\x$M2\\x$M3\\x$M4\\x$H1\\x$H2\\x65)" 
+
+echo  -en ${Payload}  > /tmp/ttyWVCDUMMY$I
+
+sleep .6
+
+OUTPUT="$(cat /dev/shm/ser-data$I | sed 's/<.*//' | sed 's/>//' | sed 's/0x//'  | sed -E ':a ; $!N ; s/\n\s+/ / ; ta ; P ; D' | tr -d '[:blank:]' | sed '/^$/d' | sed -nr '/^.{34,34}$/p')"
+sleep .8
+######Convert Hex to temp #########
+TEMP="$(echo $OUTPUT | cut -c33-34)"
+TDEC="$(echo $(( 16#$TEMP )))"
+
+Input="$(echo 'TMP'$TDEC)"
+MQttT="$(cat lookup | jq --arg Itype "$Itype" --arg Input "$Input" '.[$Itype]  | .[$Input]' |  sed 's/[^-.0-9]*//g')"
+
+ if [ $MQttT -eq 86 ]; then
+     echo  " no  input from inverter "  $D_id
+      # > /dev/shm/ser-data$I
+        sleep .4
+        echo -en ${ModemTest} > /tmp/ttyWVCDUMMY$I   
+        sleep 2
+        OUTPUT="$(cat /dev/shm/ser-data$I | sed 's/<.*//' | sed 's/>//' | sed 's/0x//'  | sed -E ':a ; $!N ; s/\n\s+/ / ; ta ; P ; D' | tr -d '[:blank:]' | sed '/^$/d' )"
+          if [ -z  "$OUTPUT" ]; then
+            echo $OUTPUT 
+              echo " no COM  detected " 
+             pkill interceptty
+              sleep .4
+             echo  " restarting COM"
+              interceptty -s 'ispeed 9600 ospeed 9600' -l $1 /tmp/ttyWVCDUMMY$I -f hex >> /dev/shm/ser-data$I  &
+              sleep .4
+               echo  "started"  
+           fi
+     else
+         echo  "Inverter ID " $D_id
+         echo "Temp " $MQttT
+         # ADD secondary procees to send DATa to  database or MQTT here
+         mosquitto_pub -h $host -t "incoming/$3/TEMP-Energy/temperature-$D_id" -m "N:$MQttT"
+         
+######Convert Hex to VAC #########
+TEMP="$(echo $OUTPUT | cut -c29-32 | tac -rs .. | echo $(tr -d '\n') )"
+TDEC="$(echo $(( 16#$TEMP )))"
+
+ Input="$(echo 'VAC'$TDEC)"
+MQttVAC="$(cat lookup | jq --arg Itype "$Itype" --arg Input "$Input" '.[$Itype]  | .[$Input]' |  sed 's/[^-.0-9]*//g')"
+
+echo "VAC  " $MQttVAC
+# ADD secondary procees to send DATa to  database or MQTT here
+mosquitto_pub -h $host -t "incoming/$3/AC-Energy/voltage-$D_id" -m "N:$MQttVAC"
+
+######Convert Hex to AAC #########
+TEMP="$(echo $OUTPUT | cut -c25-28 | tac -rs .. | echo $(tr -d '\n') )"
+TDEC="$(echo $(( 16#$TEMP )))"
+if [ ${MQttVAC%.*} -gt 160 ]; then
+
+ Input="$(echo 'AACB'$TDEC)"
+ MQttAAC="$(cat lookup | jq --arg Itype "$Itype" --arg Input "$Input" '.[$Itype]  | .[$Input]' |  sed 's/[^-.0-9]*//g')"
+ 
+ #echo "high volt"
+ else
+ 
+  Input="$(echo 'AACA'$TDEC)"
+ MQttAAC="$(cat lookup | jq --arg Itype "$Itype" --arg Input "$Input" '.[$Itype]  | .[$Input]' |  sed 's/[^-.0-9]*//g')"
+
+#echo "low volt"
+fi
+echo "AAC  " $MQttAAC
+# ADD secondary procees to send DATa to  database or MQTT here
+mosquitto_pub -h $host -t "incoming/$3/AC-Energy/current-$D_id" -m "N:$MQttAAC"
+
+######Convert Hex to VDC #########
+TEMP="$(echo $OUTPUT | cut -c21-24 | tac -rs .. | echo $(tr -d '\n') )"
+TDEC="$(echo $(( 16#$TEMP )))"
+
+Input="$(echo 'VDC'$TDEC)"
+MQttVDC="$(cat lookup | jq --arg Itype "$Itype" --arg Input "$Input" '.[$Itype]  | .[$Input]' |  sed 's/[^-.0-9]*//g')"
+
+echo "VDC  " $MQttVDC
+# ADD secondary procees to send DATa to  database or MQTT here
+mosquitto_pub -h $host -t "incoming/$3/DC-Energy/voltage-$D_id" -m "N:$MQttVDC"
+
+######Convert Hex to VDC #########
+TEMP="$(echo $OUTPUT | cut -c17-20 | tac -rs .. | echo $(tr -d '\n') )"
+TDEC="$(echo $(( 16#$TEMP )))"
+
+Input="$(echo 'ADC'$TDEC)"
+MQttADC="$(cat lookup | jq --arg Itype "$Itype" --arg Input "$Input" '.[$Itype]  | .[$Input]' |  sed 's/[^-.0-9]*//g')"
+
+echo "ADC  " $MQttADC
+# ADD secondary procees to send DATa to  database or MQTT here
+mosquitto_pub -h $host -t "incoming/$3/DC-Energy/current-$D_id" -m "N:$MQttADC"
+   
+   
+av="$(echo $av+$MQttVAC |bc -l)"
+aa="$( echo $aa+$MQttAAC |bc -l)"
+dv="$(echo $dv+$MQttVDC |bc -l)"
+da="$( echo $da+$MQttADC |bc -l)"
+DC="$( echo $MQttVDC \* $MQttADC |bc -l)"
+AC="$( echo $MQttVAC \* $MQttAAC |bc -l)"
+mosquitto_pub -h $host -t "incoming/$3/DC-Energy/power-$D_id" -m "N:$DC"
+mosquitto_pub -h $host -t "incoming/$3/AC-Energy/power-$D_id" -m "N:$AC"
+
+EF="$( echo $AC / $DC |bc -l | rev | cut -c 19- | rev )"
+   if (( $(echo "$EF < 1" |bc -l) )); then
+   #echo " "
+   #else
+   mosquitto_pub -h $host -t "incoming/$3/EF-Energy/energy-$D_id" -m "N:$EF"
+   echo "Panel Efficiency" $EF
+   fi
+
+n=$[$n+1]
+    fi
+
+done < $filename
+
+if [ $n -eq 0 ]; then
+ echo " no wattage data "
+ else
+
+    av="$( echo $av / $n | bc -l )"
+ #   aa="$( echo $aa / $n | bc -l )"  #enambe for panel average
+    dv="$( echo $dv / $n | bc -l )"
+  #  da="$( echo $da / $n | bc -l )"   #enable for panel average 
+  
+    wattsA="$(echo $av \* $aa | bc -l | rev | cut -c 19- | rev)"
+    echo  "AC watts " $wattsA
+    mosquitto_pub -h $host -t "incoming/$3/AC-Energy/power-Total" -m "N:$wattsA"
+ 
+    wattsD="$(echo $dv \* $da | bc -l | rev | cut -c 19- | rev)"
+    echo  "DC watts " $wattsD
+    mosquitto_pub  -h $host -t "incoming/$3/DC-Energy/power-Total" -m "N:$wattsD"
+    
+    EF="$( echo $wattsA / $wattsD |bc -l | rev | cut -c 19- | rev )"
+
+      if (( $(echo "$EF < 1" |bc -l) )); then
+
+        mosquitto_pub -h $host -t "incoming/$3/EF-Energy/energy-Overall" -m "N:$EF"
+        echo "Overall Efficiency " $EF
+      fi
+   fi 
+    av=0
+    aa=0
+    da=0
+    dv=0
+    n=0
+    
+
+done
+
