@@ -20,6 +20,19 @@ supported inverters are WVC295, WVC300, WVC350, WVC600, WVC850 and WVC1200
 it support  multiple incidences  of it self connect to differnt  serials inverter.list and modemsID 
 
 if using my version on energy monitor  just edit the host to point to the location energy router  otherwise edit bash script  to point to your own energy monitor  in the format it likes IE emoncms  or other 
+it output to bash\
+Inverter Type WVC1200\
+Inverter ID  c784\
+Temp  17\
+VAC   108.527\
+AAC   0.185\
+VDC   32.08\
+ADC   0.6666\
+Panel Efficiency .93\
+AC watts  20.07\
+DC watts  21.38\
+Overall Efficiency  .93\
+
 
 energy monitor
 
@@ -27,7 +40,7 @@ https://github.com/krywenko/BPI-R1_Zigbee2mqtt-energymonitor-openwrt
 
 https://github.com/krywenko/Zero-Orange-Pi--MQTT-openwrt
 
-if you have isue contact me here
+if you have issue contact me here
 
 https://community.openenergymonitor.org/t/data-logging-wvc-gti-inverters-with-wireless-serial-modems/12302/2
 
