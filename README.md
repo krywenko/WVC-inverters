@@ -24,14 +24,14 @@ its output to bash\
 
 ./wvc /dev/ttyUSB0 WVC.ini fb041187 \
  Using modem  fb 04 11 87  at port  /dev/ttyUSB0   Using  inverter list  WVC.ini \
-virtural port  /dev/ttyWVCDUMMY0 \
+virtural port  /dev/ttyWVCDUMMY0 
 
 Inverter Type WVC1200 \
- no  input from inverter  cb98\
+ no  input from inverter  cb98
 
  no COM  detected \
  restarting COM\
-started\
+started
 
 Inverter Type WVC1200\
 Inverter ID  c784\
