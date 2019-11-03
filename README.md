@@ -53,7 +53,7 @@ https://github.com/krywenko/Zero-Orange-Pi--MQTT-openwrt
 
 if you have issue contact me here
 
-https://community.openenergymonitor.org/t/data-logging-wvc-gti-inverters-with-wireless-serial-modems/12302/2
+https://community.openenergymonitor.org/t/wvc-inverter-mqtt-data-logging-for-all-versions-of-inverters/12352
 
 prerequisite additional software:
 interceptty ( serial sniffer), 
