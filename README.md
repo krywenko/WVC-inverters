@@ -58,3 +58,5 @@ https://community.openenergymonitor.org/t/wvc-inverter-mqtt-data-logging-for-all
 prerequisite additional software:
 interceptty ( serial sniffer), 
 jq ( Json query software)
+
+if you wish to install as stand alone device. orangepi Zero works well or any pi device  -  just install armbian (https://www.armbian.com/download/ ) influxdb chronograf and kapacitor ( for database )  if you wish autonmatic  data collection then install collectd 5.8  with Mqtt  plugin  and set collectd to send  data to influxdb. you can either visulize with chrongraf or grafana ( but chronograf  is not nearly as resource hungry as grafana is so i prefer chronograf )
