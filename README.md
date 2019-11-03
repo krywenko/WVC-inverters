@@ -59,4 +59,9 @@ prerequisite additional software:
 interceptty ( serial sniffer), 
 jq ( Json query software)
 
-if you wish to install as stand alone device. orangepi Zero works well or any pi device  -  just install armbian (https://www.armbian.com/download/ ) influxdb chronograf and kapacitor ( for database )  if you wish autonmatic  data collection then install collectd 5.8  with Mqtt  plugin  and set collectd to send  data to influxdb. you can either visulize with chrongraf or grafana ( but chronograf  is not nearly as resource hungry as grafana is so i prefer chronograf )
+if you wish to install as stand alone device. orangepi Zero works well or any pi device  -  just install armbian (https://www.armbian.com/download/ ) influxdb chronograf and kapacitor ( for database )  if you wish automatic  data collection then install collectd 5.8  with Mqtt  plugin  and set collectd to send  data to influxdb. you can either visulize with chrongraf or grafana ( but chronograf  is not nearly as resource hungry as grafana is so i prefer chronograf )
+
+example  enable mqtt plugin in collecd.conf  set subscribe  topic to  incoming/#  https://collectd.org/wiki/index.php/Plugin:MQTT
+to enable collectd to influxdb https://docs.influxdata.com/influxdb/v1.7/supported_protocols/collectd/ or https://www.cyberpunk.rs/system-monitoring-with-grafana-influxdb-collectd
+
+once set up data collection is automatic
