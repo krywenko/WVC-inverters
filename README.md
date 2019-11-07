@@ -79,3 +79,6 @@ wget https://dl.influxdata.com/kapacitor/releases/kapacitor-1.5.2_linux_armhf.ta
 tar xvfz kapacitor-1.5.2_linux_armhf.tar.gz
 
 once set up data collection is automatic
+
+for openwrt Compatiblity _
+install bash grep stty bc tac  the openwrt binary for intercepty are found in the interceptty folder plus you need  to modify line 37 in wvc and remove the ps arguements -efww
